@@ -1013,6 +1013,36 @@ body.has-player .wrap{padding-bottom:calc(180px + env(safe-area-inset-bottom,0px
 .seg label{display:inline-flex;gap:6px;align-items:center;cursor:pointer;border-radius:999px;padding:7px 14px;font-size:.88rem;font-weight:600;color:var(--muted)}
 .seg label:has(input:checked){background:var(--paper);color:var(--ink);box-shadow:0 2px 8px -4px rgba(0,0,0,.3)}
 .seg label input{position:absolute;opacity:0;pointer-events:none}
+
+/* ---- revisión visual: íconos centrados y consistentes ---- */
+.panel .panel{padding:0;gap:0;border-radius:16px!important}
+.panel .rowi{border-radius:0;padding:12px}
+.rowi .acts{display:flex;gap:2px;flex:none}
+.rowi .acts .ib{width:36px;height:36px;padding:0;border-radius:50%}
+.eptop{position:sticky;top:-14px;z-index:3;background:var(--bg);margin:-14px -14px 10px;padding:12px 14px 8px}
+.eptop button{display:grid;place-items:center;padding:0}
+.chrow{grid-template-columns:minmax(0,1fr) auto auto!important;padding-bottom:10px;border-bottom:1px dashed var(--line)}
+.chrow .chN{grid-column:1/-1}
+.chrow input[type=date]{grid-column:1}
+.chrow .toggle{white-space:nowrap}
+.chrow .ib{width:36px;height:36px;padding:0;border-radius:50%}
+
+.ib{justify-content:center}
+button>svg.i,a>svg.i,label>svg.i{display:block;flex:none}
+#sheetClose{width:40px;height:40px;padding:0;border-radius:50%;background:rgba(255,255,255,.22);color:#fff;display:grid;place-items:center}
+#sheetClose svg.i{width:18px;height:18px;stroke-width:2.2}
+.vbanner button,.vbanner a,.caps-actions button{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.bill-acts button,.bill-acts a,.sv-acts button,.sv-in button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.bill-acts svg.i,.sv-in svg.i{width:16px;height:16px}
+@media (max-width:560px){.sv-acts button{padding:9px 14px;font-size:.88rem}}
+.together{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px;row-gap:0}
+.together small{flex-basis:100%;font-size:.9rem;color:rgba(255,255,255,.8);font-weight:500;margin-top:2px}
+.pf .acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pf .acts .ib{width:36px;height:36px;padding:0;border-radius:50%}
+.pf .acts .ib svg.i{width:17px;height:17px}
+.igbar .ib{width:40px;height:40px;padding:0}
+.igbar .ib .cnt{margin-left:0}
+.igbar .ib:has(.cnt){width:auto;padding:0 8px;gap:4px;border-radius:999px}
 </style>
 
 <div class="wrap">
@@ -1028,7 +1058,7 @@ body.has-player .wrap{padding-bottom:calc(180px + env(safe-area-inset-bottom,0px
       <div class="bill-in">
         <div class="bill-top"><div class="duo" id="duo"></div>
           <div style="min-width:0"><h1><span id="nB">Bren</span> <span class="amp" id="amp" role="button" tabindex="0" aria-label="Sorpresa">&amp;</span> <span id="nA">Gabo</span></h1>
-          <div class="together" id="together" hidden><b id="daysNum">0</b><span id="daysTxt">días juntos</span></div></div></div>
+          <div class="together" id="together" hidden><b id="daysNum">0</b><span id="daysTxt">días juntos</span><small id="daysSub"></small></div></div></div>
         <div class="onair"><span class="ldot"></span>En vivo</div>
         <p class="narr" id="narr" aria-live="polite" title="Tocá para otro dato"></p>
         <div class="bill-acts" id="billActs"></div>
@@ -1092,7 +1122,7 @@ body.has-player .wrap{padding-bottom:calc(180px + env(safe-area-inset-bottom,0px
       <div><p class="eyebrow">Lo que viene</p><h2>Nuestros planes</h2></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" type="button" id="spinBtn"><svg class="i"><use href="#i-dice"/></svg>¿Qué hacemos?</button><button class="primary" type="button" id="planForm"><svg class="i"><use href="#i-plus"/></svg>Nuevo plan</button></div>
     </div>
-    <p class="hint" style="margin:0">Si tiene fecha, lo esperamos con cuenta regresiva. Si no, queda en ideas para algún día. Cuando lo hagamos, tocamos «Ya lo hicimos» y se suma a nuestra historia 💛</p>
+    <p class="hint" style="margin:0">Lo confirmado va arriba, con cuenta regresiva si tiene fecha. Lo demás queda en ideas para algún día. Cuando lo hagamos, tocamos «Ya lo hicimos» y se suma a nuestra historia 💛</p>
     <div id="plansBox"></div>
   </section>
 
@@ -1442,7 +1472,7 @@ function renderHero(){
   duo.append(av("brenda","a",s.photoB),av("gabo","b",s.photoA));
   if(s.since){const days=Math.round((today0()-parse(s.since))/864e5);if(!S.counted&&!RM()&&days>0&&S.db){S.counted=true;S.counting=true;const t0=performance.now();const f=t=>{const k=Math.min(1,(t-t0)/1400),e=1-Math.pow(1-k,3);$("#daysNum").textContent=Math.round(days*e).toLocaleString("es-AR");if(k<1)requestAnimationFrame(f);else S.counting=false};requestAnimationFrame(f)}else if(!S.counting)$("#daysNum").textContent=days.toLocaleString("es-AR");
     const sp=span(s.since);const parts=[];if(sp.y)parts.push(sp.y+" "+plural(sp.y,"año","años"));if(sp.m)parts.push(sp.m+" "+plural(sp.m,"mes","meses"));
-    $("#daysTxt").textContent="días juntos"+(parts.length?" · "+parts.join(" y "):"");$("#together").hidden=days<0}
+    $("#daysTxt").textContent="días juntos";$("#daysSub").textContent=parts.length?parts.join(" y "):"";$("#together").hidden=days<0}
   else $("#together").hidden=true;
   const photos=S.posts.reduce((n,p)=>n+(p.photos?p.photos.length:0),0);
   const st=$("#stats");st.replaceChildren();
@@ -2146,7 +2176,7 @@ $$("[data-mv]").forEach(b=>b.addEventListener("click",()=>setMV(b.dataset.mv)));
 $("#movieBtn").onclick=()=>{setMV("all");rain(["🎬","🍿"],14)};
 function synAuto(se,list){const ev=list.filter(p=>p.kind==="event").length,ph=list.reduce((a,p)=>a+(p.photos||[]).filter(x=>!x.ref).length,0);const chs=chaptersOf(se);
   const cl=chs.find(c=>c.climax);const pl={};list.forEach(p=>{const k=(p.place||"").trim();if(k)pl[k]=(pl[k]||0)+1});const tp=Object.entries(pl).sort((a,b)=>b[1]-a[1])[0];
-  return [list.length+" recuerdos, "+ev+" salidas y "+ph+" fotos.",cl?"El clímax: "+cl.name+".":"",tp&&tp[1]>1?"Nuestro lugar de esta temporada: "+tp[0]+".":""].filter(Boolean).join(" ")}
+  return [list.length+" "+plural(list.length,"recuerdo","recuerdos")+", "+ev+" "+plural(ev,"salida","salidas")+" y "+ph+" "+plural(ph,"foto","fotos")+".",cl?"El clímax: "+cl.name+".":"",tp&&tp[1]>1?"Nuestro lugar de esta temporada: "+tp[0]+".":""].filter(Boolean).join(" ")}
 function epDesc(p){const v=p.voices||{};return (p.text||v[S.me]||v.brenda||v.gabo||(p.date&&p.datePrecision!=="month"?autoLine(p):"")).replace(/\s+/g," ")}
 function renderSeasonView(sid){
   const box=$("#seasonView");const se=S.seasons.find(x=>x.id===sid);if(!se){setMV("home");return}
@@ -2163,8 +2193,8 @@ function renderSeasonView(sid){
   const syn=se.synopsis||(fut?"":synAuto(se,list));if(syn)inn.append(el("p","sv-syn",syn));
   const acts=el("div","sv-acts");
   if(list.length){const pl=el("button","pl");pl.type="button";pl.innerHTML=ic("playf");pl.append(document.createTextNode("Reproducir"));pl.onclick=()=>openStory(sid);acts.append(pl);
-    const rd=el("button","alt","🎲 Episodio al azar");rd.type="button";rd.onclick=()=>{const p=list[Math.floor(Math.random()*list.length)];openEp(sid,p.id)};acts.append(rd)}
-  if(S.canWrite){const ed=el("button","alt","✎ Sinopsis");ed.type="button";ed.onclick=()=>editSyn(se);acts.append(ed)}
+    const rd=el("button","alt");rd.innerHTML=ic("dice");rd.append(document.createTextNode("Episodio al azar"));rd.type="button";rd.onclick=()=>{const p=list[Math.floor(Math.random()*list.length)];openEp(sid,p.id)};acts.append(rd)}
+  if(S.canWrite){const ed=el("button","alt");ed.innerHTML=ic("edit");ed.append(document.createTextNode("Sinopsis"));ed.type="button";ed.onclick=()=>editSyn(se);acts.append(ed)}
   inn.append(acts);hero.append(inn);box.append(hero);
   if(fut){const sb=el("div","soonbox");if(se.start){const d=daysTo(se.start);sb.append(el("span","cd",String(d)),el("strong",null,plural(d,"día","días")+" para el estreno"),el("span","muted","Se estrena el "+longDate(se.start)+". Sin spoilers 🤫"))}
     else sb.append(el("span","cd","Pronto"),el("strong",null,"Próximamente"),el("span","muted","Todavía no tiene fecha. Sin spoilers 🤫"));
@@ -2317,7 +2347,7 @@ function renderBill(){
     clearInterval(BILL.t);if(f.length>1&&!RM())BILL.t=setInterval(()=>{if(document.hidden||S.mv!=="home")return;const ims=m.querySelectorAll("img");if(!ims.length)return;ims[BILL.i%ims.length].classList.remove("on");BILL.i++;const n=ims[BILL.i%ims.length];n.classList.remove("on");void n.offsetWidth;n.classList.add("on")},9000)}
   const a=$("#billActs");a.replaceChildren();const cs=curSeason();
   if(cs&&seasonPosts(cs.id).length){const n=seasonsChrono().indexOf(cs)+1;const pl=el("button","pl");pl.type="button";pl.innerHTML=ic("playf");pl.append(document.createTextNode("Ver T"+n));pl.onclick=()=>openStory(cs.id);a.append(pl);
-    const inf=el("button","alt","ⓘ Episodios");inf.type="button";inf.onclick=()=>setMV("s:"+cs.id);a.append(inf)}
+    const inf=el("button","alt");inf.innerHTML=ic("list");inf.append(document.createTextNode("Episodios"));inf.type="button";inf.onclick=()=>setMV("s:"+cs.id);a.append(inf)}
   const song=S.set.song||{};if(song.file){const sb=el("button","alt");sb.type="button";sb.textContent=PL.playing?"❚❚ Pausar canción":"♪ Nuestra canción";sb.onclick=()=>togglePlay();a.append(sb)}
   else if(song.url&&linkInfo(song.url)){a.append(linkBtn("alt",song.url,"music","Nuestra canción"))}
 }
