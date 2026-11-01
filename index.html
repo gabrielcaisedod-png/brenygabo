@@ -1262,6 +1262,7 @@ body.has-player .wrap{padding-bottom:calc(180px + env(safe-area-inset-bottom,0px
       <span class="hint" id="filesHint">Hasta 10 por recuerdo · fotos JPG/PNG/GIF/WebP · videos MP4 o WebM de hasta 20 MB</span>
     </div>
     <div class="field" id="fTitle" hidden><label for="inTitle" id="lTitle">Título</label><input type="text" id="inTitle" maxlength="120"></div>
+    <div class="field" id="fStatus" hidden><span class="flabel">¿Cómo está?</span><div class="seg" role="radiogroup" aria-label="Estado del plan"><label><input type="radio" name="planStatus" value="idea"> 💡 Es una idea</label><label><input type="radio" name="planStatus" value="confirmado"> ✅ Confirmado</label></div><span class="hint" id="statusHint">Las ideas quedan para algún día. Lo confirmado va arriba, con cuenta regresiva si tiene fecha.</span></div>
     <div class="field" id="fText"><label for="inText" id="lText">Mensaje</label><textarea id="inText"></textarea></div>
     <div class="field" id="fCats" hidden><span class="flabel">¿Qué hicimos?</span><div class="cats" id="catBtns"></div></div>
     <div class="field" id="fPlace" hidden><label for="inPlace">Lugar (opcional)</label><input type="text" id="inPlace" maxlength="120" placeholder="Ej: Cinemark Palermo"></div>
@@ -2549,7 +2550,7 @@ function renderPlans(){
     const ph=(p.photos||[])[0];const dd=!p.done&&isConfirmed(p)?daysTo(p.date):null;
     const cdEl=()=>{const x=el("span","cd");if(dd===0)x.append(el("b",null,"Hoy"));else if(dd<0){x.append(el("b",null,"¿Y?"));x.append(el("small",null,"¿ya fueron?"))}else{x.append(el("b",null,String(dd)));x.append(el("small",null,plural(dd,"día","días")))}return x};
     if(ph){const d=el("div","pim");const i=el("img");i.loading="lazy";i.alt="";i.src=thumbSrc(ph);d.append(i);if(dd!==null)d.append(cdEl());c.append(d)}
-    const b=el("div","pb");const k=el("span","pc");k.innerHTML=ic(cat[1]);k.append(document.createTextNode(cat[0]));b.append(k,el("h4",null,p.title));
+    const b=el("div","pb");const k=el("span","pc");k.innerHTML=ic(cat[1]);k.append(document.createTextNode(cat[0]));if(!p.done)k.append(document.createTextNode(planStatus(p)==="confirmado"?" · ✅ Confirmado":" · 💡 Idea"));b.append(k,el("h4",null,p.title));
     if(dd!==null&&!ph)b.append(el("span","cdi",dd===0?"Es hoy":dd<0?"Ya pasó la fecha: ¿lo hicieron?":"Faltan "+dd+" "+plural(dd,"día","días")));
     const m=el("div","pm");
     if(p.date){const x=el("span");x.innerHTML=ic("cal");x.append(document.createTextNode(p.datePrecision==="month"?fmt(p.date,{month:"long",year:"numeric"}):fmt(p.date)));m.append(x)}
@@ -2572,14 +2573,15 @@ function renderPlans(){
         if(post){const v=el("button","ghost","Ver en el muro");v.type="button";v.style.padding="6px 12px";v.onclick=()=>focusPost(post.id);a.append(v)}
         const u=el("button","ib");u.type="button";u.innerHTML=ic("left");u.setAttribute("aria-label","Volver a pendientes");u.title="Volver a pendientes";u.onclick=()=>undoPlan(p);a.append(u)}}
     f.append(a);c.append(f);return c};
-  const conf=todo.filter(isConfirmed),ideas=todo.filter(x=>!isConfirmed(x));
+  const conf=todo.filter(x=>planStatus(x)==="confirmado"),ideas=todo.filter(x=>planStatus(x)!=="confirmado");
   const sec=(t,list,empty)=>{const w=el("section","psec");const h=el("h3");h.append(document.createTextNode(t),el("small",null,list.length?String(list.length):""));w.append(h);
-    if(list.length){const g=el("div",t.startsWith("Ya tienen")&&list.length>1?"plans rail":"plans");list.forEach(x=>g.append(cardP(x)));w.append(g)}else w.append(el("p","muted",empty));box.append(w)};
-  sec("Ya tienen fecha 🗓️",conf,"Todavía no hay nada con fecha. Cuando le pongamos día a algo, aparece acá con su cuenta regresiva.");
+    if(list.length){const g=el("div",t.startsWith("Confirmados")&&list.length>1?"plans rail":"plans");list.forEach(x=>g.append(cardP(x)));w.append(g)}else w.append(el("p","muted",empty));box.append(w)};
+  sec("Confirmados ✅",conf,"Todavía no hay nada confirmado. Cuando un plan es seguro (entradas compradas, reserva hecha), marcalo como Confirmado.");
   sec("Ideas para algún día ✨",ideas,"No hay ideas anotadas. Tiremos lo que tengamos ganas de hacer, aunque no tenga fecha.");
   if(done.length){const d=el("details","donebox");const sm=el("summary",null,"Ya lo hicimos ("+done.length+")");d.append(sm);const g=el("div","plans");done.forEach(x=>g.append(cardP(x)));d.append(g);box.append(d)}
 }
-function isConfirmed(p){return !!p.date&&p.datePrecision!=="month"}
+function planStatus(p){return p.status||(p.date&&p.datePrecision!=="month"?"confirmado":"idea")}
+function isConfirmed(p){return planStatus(p)==="confirmado"&&!!p.date&&p.datePrecision!=="month"}
 function daysTo(iso){return Math.round((parse(iso)-today0())/864e5)}
 async function completePlan(p){
   try{
@@ -2662,7 +2664,7 @@ function setKind(k){
   $("#fCats").hidden=!(k==="event"||P);$("#fPlace").hidden=!(k==="event"||k==="trip"||P);$("#fEnd").hidden=k!=="trip";
   $("#fTripSel").hidden=!(k==="event"||k==="media"||k==="note"||k==="link")||!S.posts.some(x=>x.kind==="trip");$("#fRating").hidden=k!=="event";if(P)$("#fTripSel").hidden=true;
   $("#fTitle").hidden=!(k==="event"||k==="date"||k==="media"||k==="trip"||P);$("#lTitle").textContent=P?"¿Qué queremos hacer?":k==="trip"?"Nombre del viaje":k==="date"?"Nombre de la fecha":k==="media"?"Nombre del álbum (opcional)":"Título";
-  $("#inTitle").placeholder=k==="trip"?"Ej: Vacaciones en San Rafael":k==="date"?"Ej: Nos mudamos juntos":"Ej: Vimos Dune 3";
+  $("#inTitle").placeholder=P?"Ej: Ir a ver Avengers":k==="trip"?"Ej: Vacaciones en San Rafael":k==="date"?"Ej: Nos mudamos juntos":"Ej: Vimos Dune 3";$("#fStatus").hidden=!P;
   $("#fUrl").hidden=!(k==="link"||k==="event"||P);$("#lUrl").textContent=P?"Link (opcional): entradas, lugar, canción…":k==="event"?"Canción o link (opcional)":"Link";
   $("#fFiles").hidden=!(k==="media"||k==="event"||P);$("#fRef").hidden=k!=="event"||ed;
   $("#lFiles").textContent=ed&&!P?"Sumar fotos":(P?"Imagen de referencia (opcional)":k==="event"?"Fotos (opcional)":"Fotos y videos");
@@ -2697,7 +2699,8 @@ function openSheet(kind,doc,prefill){
     const ob=otherOf()==="brenda"?S.set.bdayB:S.set.bdayA;if(ob)qs.push(["Cumple de "+nameOf(otherOf()),isoOf(nextOcc(ob,true).next)]);
     const y1=new Date();y1.setFullYear(y1.getFullYear()+1);qs.push(["En un año",isoOf(y1)]);
     qs.forEach(([t,v])=>{const b=el("button","chip",t);b.type="button";b.onclick=()=>{$("#inSealAt").value=v};q.append(b)})}
-  $("#shareTop").textContent=doc?"Guardar":"Compartir";
+  $("#shareTop").textContent=doc?"Guardar":kind==="plan"?"Agregar":"Compartir";
+  {const st=kind==="plan"?planStatus(doc||{}):"idea";$$('input[name="planStatus"]').forEach(r=>{r.checked=r.value===st})}
   $("#moreOpts").open=!!(doc&&((doc.tags||[]).length||doc.trip||doc.season));
   renderFiles();syncCats();syncRating();setKind(kind||"media");$("#sheet").hidden=false;document.body.style.overflow="hidden";
   setTimeout(()=>{const f=kind==="note"?$("#inText"):(kind==="event"||kind==="date"||kind==="trip"||kind==="plan")?$("#inTitle"):kind==="link"?$("#inUrl"):null;if(f)f.focus()},50);
@@ -2741,7 +2744,7 @@ $("#saveBtn").addEventListener("click",async()=>{
       const u=$("#inUrl").value.trim();if(u&&!linkInfo(u))throw{ui:"El link tiene que empezar con https://"};
       btn.disabled=true;
       const dv=$("#inDate").value,mo=!!dv&&$("#inMonthOnly").checked;
-      const data={title,cat:S.cat,place:$("#inPlace").value.trim(),url:u,text,date:dv?(mo?dv.slice(0,7)+"-01":dv):"",datePrecision:mo?"month":"",tags:parseTags($("#inTags").value)};
+      const data={title,cat:S.cat,place:$("#inPlace").value.trim(),url:u,text,date:dv?(mo?dv.slice(0,7)+"-01":dv):"",datePrecision:mo?"month":"",tags:parseTags($("#inTags").value),status:(($('input[name="planStatus"]:checked')||{}).value)||"idea"};
       const photos=(S.edit&&S.edit.photos||[]).slice();
       if(S.files.length){if(!(await ensureAssets()))throw{ui:"No se pudo conectar para subir fotos. Probá de nuevo."};
         for(let i=0;i<S.files.length;i++){msg.textContent=`Subiendo ${i+1} de ${S.files.length}…`;const x=await uploadFile(S.files[i].file);x.ref=true;photos.push(x)}}
