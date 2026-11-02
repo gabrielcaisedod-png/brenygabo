@@ -1014,6 +1014,21 @@ body.has-player .wrap{padding-bottom:calc(180px + env(safe-area-inset-bottom,0px
 .seg label:has(input:checked){background:var(--paper);color:var(--ink);box-shadow:0 2px 8px -4px rgba(0,0,0,.3)}
 .seg label input{position:absolute;opacity:0;pointer-events:none}
 
+
+.prow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pst{align-self:center;font-size:.7rem;font-weight:800;letter-spacing:.04em;border-radius:999px;padding:3px 9px;margin-top:-2px}
+.pst.ok{background:color-mix(in srgb,#2f8f5b 16%,var(--paper));color:color-mix(in srgb,#2f8f5b 75%,var(--ink))}
+.pst.idea{background:color-mix(in srgb,#d9a400 18%,var(--paper));color:color-mix(in srgb,#8a6a00 80%,var(--ink))}
+.pf .acts .donebtn{order:-1}
+.pmenu{padding:0 14px 14px}
+.pmenu a{position:relative;border:0;background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 12px;font:inherit;font-weight:600;display:inline-flex;gap:6px;align-items:center;text-decoration:none}
+.pmenu svg.i{width:16px;height:16px}
+.topbar .hi{white-space:normal;line-height:1.05}
+@media (max-width:400px){.topbar .hi{font-size:1.15rem}}
+.files label.addf.big{color:color-mix(in srgb,var(--rose) 78%,#000)}
+:root[data-theme="dark"] .files label.addf.big{color:var(--rose)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .files label.addf.big{color:var(--rose)}}
+.ach .w{color:color-mix(in srgb,var(--ink) 72%,transparent)}
 /* ---- revisión visual: íconos centrados y consistentes ---- */
 .panel .panel{padding:0;gap:0;border-radius:16px!important}
 .panel .rowi{border-radius:0;padding:12px}
@@ -1479,7 +1494,7 @@ function renderHero(){
   const stat=(n,l,fn,hot,aria)=>{const x=el("button","stat"+(hot?" hot":""));x.type="button";x.append(el("b",null,String(n)),el("span",null,l));x.onclick=fn;if(aria)x.setAttribute("aria-label",aria);st.append(x)};
   const T=todayISO();const ch=seasonsChrono();const cur=ch.filter(x=>x.start&&x.start<=T&&(!x.end||x.end>=T)).pop()||ch.filter(x=>x.start&&x.start<=T).pop();
   if(cur){const n=ch.indexOf(cur)+1;stat("T"+n,"en curso",()=>{clearFilters();go("muro");scrollToId("s-"+cur.id)},false,"Temporada "+n+": "+cur.name)}
-  const conf=S.plans.filter(p=>!p.done&&isConfirmed(p)&&daysTo(p.date)>=0).length;stat(conf,"con fecha",()=>go("planes"),false,conf+" planes con fecha");
+  const conf=S.plans.filter(p=>!p.done&&planStatus(p)==="confirmado"&&(!p.date||daysTo(p.date)>=0)).length;stat(conf,plural(conf,"confirmado","confirmados"),()=>go("planes"),false,conf+" planes confirmados");
   const ideas=S.plans.filter(p=>!p.done&&!isConfirmed(p)).length;stat(ideas,plural(ideas,"idea","ideas"),()=>openSpin(),false,ideas+" ideas para algún día");
   if(canSee("capsulas")||canSee("cartas")){const nS=(canSee("capsulas")?S.sealed.length:0)+(canSee("cartas")?S.letters.filter(l=>l.openAt&&l.openAt>T).length:0);stat(nS,plural(nS,"sellada","selladas"),()=>go("cartas"),false,nS+" cápsulas selladas")}
   else stat(S.posts.length,"recuerdos",()=>{go("muro");window.scrollTo({top:$("#wallTools").offsetTop-20})});
@@ -2405,12 +2420,22 @@ $("#tabSearch").onclick=()=>{if(S.navOn)NAV.push(snap());if(S.tab==="muro"&&S.mv
 $("#toFechas").onclick=()=>go("fechas");
 
 /* ---------- creador ---------- */
+function missingThumbs(){const out=[];[["posts",S.allPosts.length?S.allPosts:S.posts],["plans",S.plans]].forEach(([col,list])=>(list||[]).forEach(p=>(p.photos||[]).forEach(x=>{if(x.t!=="video"&&!x.th)out.push({col,p,x})})));return out}
+async function fixThumbs(btn,st){btn.disabled=true;const miss=missingThumbs();const byDoc=new Map();let i=0,ok=0;
+  for(const m of miss){i++;st.textContent="Optimizando "+i+" de "+miss.length+"…";
+    try{const r=await fetch("/_blob/"+m.x.id);if(!r.ok)continue;const bl=await r.blob();const f=new File([bl],"f.jpg",{type:bl.type||"image/jpeg"});
+      const tb=await prepImage(f,900,.78,true);const t=await S.assets.upload(tb,{type:"image/jpeg"});
+      const key=m.col+"/"+m.p.id;if(!byDoc.has(key))byDoc.set(key,(m.p.photos||[]).map(x=>Object.assign({},x)));const arr=byDoc.get(key);const it=arr.find(x=>x.id===m.x.id);if(it){it.th=t.id;ok++}}catch(e){}}
+  for(const [key,arr] of byDoc){try{await S.db.doc(key).update({photos:arr})}catch(e){}}
+  st.textContent=ok+" "+plural(ok,"foto optimizada","fotos optimizadas")+" ✓";toast("Fotos optimizadas ✓")}
 function renderCreator(){
   const pn=$("#creatorPanel");if(!pn)return;pn.hidden=S.me!=="gabo"||!!S.asB;if(pn.hidden)return;
   const box=$("#featList");box.replaceChildren();
   {const w=el("div","feat");const t=el("div","txt");const lt=(S.set||{}).letter||{};t.append(el("div","n","Invitación de bienvenida"),el("div","w","Le manda por WhatsApp el link y los pasos para entrar. Adentro la espera tu carta."),el("div","st"+(lt.body?" on":""),lt.body?"Carta lista ✓":"Primero escribí la carta abajo"));
     const msg="Holaaa, loquísima 🥰✨\nTe armé algo: un espacio solo nuestro 🏡💕 para guardar todo lo que vivimos 📸🎬\n\n1️⃣ Abrí el link en Safari 🧭\n2️⃣ Entrá con tu mail y la contraseña que te paso 🔑\n3️⃣ Tocá Compartir ⬆️ → «Agregar a inicio» para tenerla como app 📲\n4️⃣ Adentro te espera una carta 💌\n\nAcá está la entrada 👇";
     const a=linkBtn("primary",waHref(msg,true),"chat","Mandar");a.style.flex="none";w.append(t,a);box.append(w)}
+  {const miss=missingThumbs();if(miss.length){const w=el("div","feat");const t=el("div","txt");t.append(el("div","n","Optimizar fotos"),el("div","w",miss.length+" "+plural(miss.length,"foto no tiene","fotos no tienen")+" miniatura. Se cargan más lento en el celu. Generarlas una vez lo arregla."),el("div","st","Tarda un par de minutos"));
+    const b=el("button","primary","Optimizar");b.type="button";b.disabled=!S.canWrite;b.onclick=()=>fixThumbs(b,t.querySelector(".st"));w.append(t,b);box.append(w)}}
   FEATS.forEach(([k,l,d])=>{const r=(((S.set||{}).release)||{})[k]||{};const row=el("div","feat");const t=el("div","txt");
     t.append(el("div","n",l),el("div","w",d),el("div","st"+(r.on?" on":""),r.on?"Visible para "+nameOf("brenda")+(r.msg?(r.seen?" · ya vio la novedad":" · todavía no vio la novedad"):""):"Solo vos"));
     const b=el("button",r.on?"ghost":"primary",r.on?"Ocultar":"Habilitar");b.type="button";b.disabled=!S.canWrite;
@@ -2580,7 +2605,7 @@ function renderPlans(){
     const ph=(p.photos||[])[0];const dd=!p.done&&isConfirmed(p)?daysTo(p.date):null;
     const cdEl=()=>{const x=el("span","cd");if(dd===0)x.append(el("b",null,"Hoy"));else if(dd<0){x.append(el("b",null,"¿Y?"));x.append(el("small",null,"¿ya fueron?"))}else{x.append(el("b",null,String(dd)));x.append(el("small",null,plural(dd,"día","días")))}return x};
     if(ph){const d=el("div","pim");const i=el("img");i.loading="lazy";i.alt="";i.src=thumbSrc(ph);d.append(i);if(dd!==null)d.append(cdEl());c.append(d)}
-    const b=el("div","pb");const k=el("span","pc");k.innerHTML=ic(cat[1]);k.append(document.createTextNode(cat[0]));if(!p.done)k.append(document.createTextNode(planStatus(p)==="confirmado"?" · ✅ Confirmado":" · 💡 Idea"));b.append(k,el("h4",null,p.title));
+    const b=el("div","pb");const k=el("span","pc");k.innerHTML=ic(cat[1]);k.append(document.createTextNode(cat[0]));const prw=el("div","prow");prw.append(k);if(!p.done)prw.append(el("span","pst "+(planStatus(p)==="confirmado"?"ok":"idea"),planStatus(p)==="confirmado"?"✅ Confirmado":"💡 Idea"));b.append(prw,el("h4",null,p.title));
     if(dd!==null&&!ph)b.append(el("span","cdi",dd===0?"Es hoy":dd<0?"Ya pasó la fecha: ¿lo hicieron?":"Faltan "+dd+" "+plural(dd,"día","días")));
     const m=el("div","pm");
     if(p.date){const x=el("span");x.innerHTML=ic("cal");x.append(document.createTextNode(p.datePrecision==="month"?fmt(p.date,{month:"long",year:"numeric"}):fmt(p.date)));m.append(x)}
@@ -2594,15 +2619,21 @@ function renderPlans(){
     if(S.canWrite){
       if(S.confirm==="p:"+p.id){const y=el("button","mini yes","Borrar");y.type="button";y.onclick=async()=>{S.confirm=null;try{await S.db.doc("plans/"+p.id).delete()}catch(e){toast(errText(e))}};
         const n=el("button","mini","No");n.type="button";n.onclick=()=>{S.confirm=null;renderPlans()};a.append(y,n)}
-      else if(!p.done){const e=el("button","ib");e.type="button";e.innerHTML=ic("edit");e.setAttribute("aria-label","Editar plan");e.onclick=()=>openSheet("plan",p);
-        const x=el("button","ib");x.type="button";x.innerHTML=ic("trash");x.setAttribute("aria-label","Borrar plan");x.onclick=()=>{S.confirm="p:"+p.id;renderPlans()};if(!(p.by===S.me||S.me==="gabo"))x.hidden=true;
-        const d=el("button","donebtn");d.type="button";d.innerHTML=ic("check");d.append(document.createTextNode("Ya lo hicimos"));d.onclick=()=>completePlan(p);if(isConfirmed(p)){a.append(linkBtn("ib",gcalHref(p.title,p.date,[p.place,p.url].filter(Boolean).join(" · ")),"cal","","Agendar en Google Calendar"),
-          linkBtn("ib",waHref("Nuestro plan: "+p.title+" · "+fmt(p.date,{weekday:"long",day:"numeric",month:"long"})+(p.place?" · "+p.place:"")),"chat","","Mandar por WhatsApp"))}
-        a.append(e,x,d)}
+      else if(!p.done){
+        const d=el("button","donebtn");d.type="button";d.innerHTML=ic("check");d.append(document.createTextNode("Ya lo hicimos"));d.onclick=()=>completePlan(p);
+        const mb=el("button","ib");mb.type="button";mb.innerHTML=ic("more");mb.setAttribute("aria-label","Más opciones del plan");mb.setAttribute("aria-expanded",String(S.pmore===p.id));mb.onclick=()=>{S.pmore=S.pmore===p.id?null:p.id;renderPlans()};
+        a.append(d,mb);
+        if(S.pmore===p.id){const mn=el("div","igmenu pmenu");
+          if(isConfirmed(p)){const g=linkBtn("",gcalHref(p.title,p.date,[p.place,p.url].filter(Boolean).join(" · ")),"cal","Agendar");mn.append(g);
+            const w=linkBtn("",waHref("Nuestro plan: "+p.title+" · "+fmt(p.date,{weekday:"long",day:"numeric",month:"long"})+(p.place?" · "+p.place:"")),"chat","WhatsApp");mn.append(w)}
+          const e=el("button");e.type="button";e.innerHTML=ic("edit");e.append(document.createTextNode("Editar"));e.onclick=()=>{S.pmore=null;openSheet("plan",p)};mn.append(e);
+          if(p.by===S.me||S.me==="gabo"){const x=el("button","danger");x.type="button";x.innerHTML=ic("trash");x.append(document.createTextNode("Borrar"));x.onclick=()=>{S.pmore=null;S.confirm="p:"+p.id;renderPlans()};mn.append(x)}
+          c._mn=mn}
+      }
       else{const post=p.postId&&S.posts.find(x=>x.id===p.postId);
         if(post){const v=el("button","ghost","Ver en el muro");v.type="button";v.style.padding="6px 12px";v.onclick=()=>focusPost(post.id);a.append(v)}
         const u=el("button","ib");u.type="button";u.innerHTML=ic("left");u.setAttribute("aria-label","Volver a pendientes");u.title="Volver a pendientes";u.onclick=()=>undoPlan(p);a.append(u)}}
-    f.append(a);c.append(f);return c};
+    f.append(a);c.append(f);if(c._mn)c.append(c._mn);return c};
   const conf=todo.filter(x=>planStatus(x)==="confirmado"),ideas=todo.filter(x=>planStatus(x)!=="confirmado");
   const sec=(t,list,empty)=>{const w=el("section","psec");const h=el("h3");h.append(document.createTextNode(t),el("small",null,list.length?String(list.length):""));w.append(h);
     if(list.length){const g=el("div",t.startsWith("Confirmados")&&list.length>1?"plans rail":"plans");list.forEach(x=>g.append(cardP(x)));w.append(g)}else w.append(el("p","muted",empty));box.append(w)};
